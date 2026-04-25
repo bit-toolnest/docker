@@ -1,21 +1,36 @@
 #!/bin/bash
 set -e
 
-echo "=== Dummy Uninstaller Script ==="
-echo "This script should remove all components installed by install.sh."
+echo "=== Docker + Registry Uninstaller Script ==="
 
-# Example steps (replace with real commands):
-# 1. Stop services
-#    sudo systemctl stop tool.service
-#    sudo systemctl disable tool.service
+# Remove registry container if it exists
+if sudo docker ps -a --format '{{.Names}}' | grep -q '^registry$'; then
+  echo "➡ Removing local Docker registry..."
+  sudo docker stop registry || true
+  sudo docker rm -f registry || true
+  echo "✅ Registry container removed"
+else
+  echo "✅ No registry container found"
+fi
 
-# 2. Remove system packages
-#    sudo apt remove --purge -y <package>
+# Uninstall Docker
+if command -v docker >/dev/null 2>&1; then
+  echo "➡ UnInstalling Docker..."
+  sudo systemctl stop docker || true
+  sudo systemctl disable docker || true
+  sudo apt remove --purge docker.io -y || true
 
-# 3. Clean environment variables
-#    sudo sed -i '/TOOL_HOME=/d' /etc/environment
+  # Remove Docker data directories
+  sudo rm -rf /var/lib/docker /etc/docker || true
 
-# 4. Delete files and directories
-#    sudo rm -rf /opt/tool
+  echo "✅ Docker removed"
+else
+  echo "✅ Docker was not installed"
+fi
 
-echo "✅ Uninstallation complete (dummy run)"
+# Cleanup
+echo "➡ Running apt cleanup..."
+sudo apt autoremove -y
+sudo apt clean
+
+echo "🎯 Docker + Registry uninstall process finished!"
