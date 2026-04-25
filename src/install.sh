@@ -1,18 +1,35 @@
 #!/bin/bash
 set -e
 
-echo "=== Dummy Installer Script ==="
-echo "This script should install all required components for the tool."
+echo "=== Install Script ==="
 
-# Example steps (replace with real commands):
-# 1. Install system packages
-#    sudo apt update && sudo apt install -y <package>
+# 5) Install Docker only if not installed
+if ! command -v docker >/dev/null 2>&1; then
+  echo "➡ Installing Docker..."
+  sudo apt update
+  sudo apt install docker.io -y
+  sudo systemctl enable docker
+  sudo systemctl start docker
+else
+  echo "✅ Docker already installed"
+fi
 
-# 2. Configure environment variables
-#    echo "export TOOL_HOME=/opt/tool" | sudo tee -a /etc/environment
+# 7) Setup local Docker registry (auto-restart on reboot)
+echo "➡ Setting up local Docker registry..."
 
-# 3. Start services or background processes
-#    sudo systemctl enable tool.service
-#    sudo systemctl start tool.service
+if sudo docker ps -a --format '{{.Names}}' | grep -q '^registry$'; then
+    echo "✅ Registry container already exists"
+    # Ensure it's running
+    sudo docker start registry || true
+else
+    echo "➡ Creating registry container..."
+    sudo docker run -d \
+        -p 5000:5000 \
+        --restart=always \
+        --name registry \
+        registry:2
+    echo "✅ Local Docker registry started on port 5000"
+fi
 
-echo "✅ Installation complete (dummy run)"
+echo "🎯 Install script finished successfully!"
+
